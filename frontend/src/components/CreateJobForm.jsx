@@ -2,8 +2,9 @@ import { useForm } from 'react-hook-form';
 import { showNotification } from '@mantine/notifications';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import { ChevronDown } from 'lucide-react';
+import axios from 'axios';
 
-export default function CreateJobForm() {
+export default function CreateJobForm({ onSubmitSuccess }) {
   const {
     register,
     handleSubmit,
@@ -14,36 +15,38 @@ export default function CreateJobForm() {
 
   const values = watch();
 
-  const formatSalary = () => {
-    const min = parseInt(values.salaryMin);
-    const max = parseInt(values.salaryMax);
-    if (!isNaN(min) && !isNaN(max)) {
-      return `${min} - ${max}`;
-    }
-    return '';
-  };
-
   const isValidSalary = () => {
     const min = parseInt(values.salaryMin);
     const max = parseInt(values.salaryMax);
     return !isNaN(min) && !isNaN(max) && min < max;
   };
 
-  const simulateSubmit = (status) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (!isValidSalary()) {
-          reject(new Error('Invalid salary range'));
-        } else {
-          resolve(`${status === 'published' ? 'Published' : 'Draft Saved'} successfully`);
-        }
-      }, 800);
-    });
+  const sendJobData = async (data, status) => {
+    if (!isValidSalary()) {
+      throw new Error("Invalid salary range");
+    }
+
+    const payload = {
+      title: data.title,
+      companyName: data.company,
+      location: data.location,
+      jobType: data.jobType,
+      salaryFrom: data.salaryMin,
+      salaryTo: data.salaryMax,
+      description: data.description,
+      applicationDeadline: data.deadline,
+      requirements: "To be added",
+      responsibilities: "To be added",
+      status: status,
+    };
+
+    const response = await axios.post("http://localhost:5000/api/jobs", payload);
+    return response.data;
   };
 
   const onSubmit = async (data) => {
     try {
-      await simulateSubmit('published');
+      const newJob = await sendJobData(data, 'published');
       showNotification({
         title: '🎉 Job Published!',
         message: 'Your job was successfully posted.',
@@ -51,6 +54,10 @@ export default function CreateJobForm() {
         icon: <IconCheck />,
         autoClose: 3000,
       });
+
+      if (onSubmitSuccess) {
+        onSubmitSuccess(newJob);
+      }
     } catch (error) {
       showNotification({
         title: 'Error ❌',
@@ -62,14 +69,19 @@ export default function CreateJobForm() {
   };
 
   const onSaveDraft = async () => {
+    const data = getValues();
     try {
-      await simulateSubmit('draft');
+      const newJob = await sendJobData(data, 'draft');
       showNotification({
         title: 'Draft Saved 💾',
         message: 'Your draft has been saved successfully.',
         color: 'blue',
         icon: <IconCheck />,
       });
+
+      if (onSubmitSuccess) {
+        onSubmitSuccess(newJob);
+      }
     } catch (error) {
       showNotification({
         title: 'Error ❌',
@@ -104,7 +116,6 @@ export default function CreateJobForm() {
         </h2>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Job Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Job Title
@@ -118,7 +129,6 @@ export default function CreateJobForm() {
             <p className="text-red-500 text-xs mt-1">{errors.title?.message}</p>
           </div>
 
-          {/* Company Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Company Name
@@ -132,7 +142,6 @@ export default function CreateJobForm() {
             <p className="text-red-500 text-xs mt-1">{errors.company?.message}</p>
           </div>
 
-          {/* Location */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Location
@@ -142,9 +151,7 @@ export default function CreateJobForm() {
               className={selectClass('location')}
               {...register('location', { required: 'Location is required' })}
             >
-              <option value="" disabled hidden>
-                Choose Preferred Location
-              </option>
+              <option value="" disabled hidden>Choose Preferred Location</option>
               <option value="Remote">Remote</option>
               <option value="Bangalore">Bangalore</option>
               <option value="Hyderabad">Hyderabad</option>
@@ -154,7 +161,6 @@ export default function CreateJobForm() {
             <ChevronDown className="absolute right-3 top-[34px] h-4 w-4 text-gray-400 pointer-events-none" />
           </div>
 
-          {/* Job Type */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Job Type
@@ -164,9 +170,7 @@ export default function CreateJobForm() {
               className={selectClass('jobType')}
               {...register('jobType', { required: 'Job type is required' })}
             >
-              <option value="" disabled hidden>
-                Full Time
-              </option>
+              <option value="" disabled hidden>Full Time</option>
               <option value="FullTime">Full Time</option>
               <option value="PartTime">Part Time</option>
               <option value="Contract">Contract</option>
@@ -176,40 +180,32 @@ export default function CreateJobForm() {
             <ChevronDown className="absolute right-3 top-[34px] h-4 w-4 text-gray-400 pointer-events-none" />
           </div>
 
-          {/* Salary Range */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Salary Range
             </label>
             <div className="flex gap-2">
               <div className="relative w-full">
-                <span className="absolute left-2 top-1/2 -translate-y-[65%] text-gray-400 text-sm">
-                  ⇅
-                </span>
+                <span className="absolute left-2 top-1/2 -translate-y-[65%] text-gray-400 text-sm">⇅</span>
                 <input
                   type="text"
                   placeholder="₹0"
-                  className={`${isFilled('salaryMin') ? 'border-black font-medium' : 'border-gray-300 font-normal'} 
-                    w-full pl-7 rounded-md py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black`}
+                  className="pl-7 w-full border rounded-md py-2 text-sm text-gray-700"
                   {...register('salaryMin', { required: 'Minimum salary is required' })}
                 />
               </div>
               <div className="relative w-full">
-                <span className="absolute left-2 top-1/2 -translate-y-[65%] text-gray-400 text-sm">
-                  ⇅
-                </span>
+                <span className="absolute left-2 top-1/2 -translate-y-[65%] text-gray-400 text-sm">⇅</span>
                 <input
                   type="text"
                   placeholder="₹12,00,000"
-                  className={`${isFilled('salaryMax') ? 'border-black font-medium' : 'border-gray-300 font-normal'} 
-                    w-full pl-7 rounded-md py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black`}
+                  className="pl-7 w-full border rounded-md py-2 text-sm text-gray-700"
                   {...register('salaryMax', { required: 'Maximum salary is required' })}
                 />
               </div>
             </div>
           </div>
 
-          {/* Deadline */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Application Deadline
@@ -222,23 +218,20 @@ export default function CreateJobForm() {
           </div>
         </div>
 
-        {/* Description */}
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Job Description
           </label>
           <textarea
             placeholder="Please share a description to let the candidate know more about the job role"
-            className={`w-full border rounded-md px-3 py-2 text-sm h-36 focus:outline-none 
-              focus:ring-1 focus:ring-black focus:border-black resize ${
-                isFilled('description') ? 'border-black font-medium' : 'border-gray-300 font-normal'
-              }`}
+            className={`w-full border rounded-md px-3 py-2 text-sm h-36 focus:outline-none focus:ring-1 focus:ring-black focus:border-black resize ${
+              isFilled('description') ? 'border-black font-medium' : 'border-gray-300 font-normal'
+            }`}
             {...register('description', { required: 'Description is required' })}
           />
           <p className="text-red-500 text-xs mt-1">{errors.description?.message}</p>
         </div>
 
-        {/* Action Buttons */}
         <div className="mt-6 flex justify-between">
           <button
             type="button"
@@ -246,9 +239,7 @@ export default function CreateJobForm() {
             className="w-[170px] py-2 border-2 border-black rounded-lg bg-white text-black text-sm font-medium shadow-sm flex items-center justify-center gap-1 hover:bg-gray-50 transition"
           >
             <span>Save Draft</span>
-            <span className="inline-block transform rotate-90 text-base leading-none">
-              &raquo;
-            </span>
+            <span className="inline-block transform rotate-90 text-base leading-none">&raquo;</span>
           </button>
 
           <button
@@ -256,9 +247,7 @@ export default function CreateJobForm() {
             className="w-[170px] py-2 border border-transparent rounded-lg bg-[#00AAFF] text-white text-sm font-medium shadow-sm flex items-center justify-center gap-1 hover:bg-[#0095dd] transition"
           >
             <span>Publish</span>
-            <span className="text-base leading-none">
-              &raquo;
-            </span>
+            <span className="text-base leading-none">&raquo;</span>
           </button>
         </div>
       </form>

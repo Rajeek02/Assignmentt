@@ -1,9 +1,8 @@
 import { IconSearch, IconMapPin, IconUser } from '@tabler/icons-react';
 import Slider from '@mui/material/Slider';
 import { styled } from '@mui/material/styles';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-// 🎯 Final Donut Thumb: Small size + bold ring + small inner hole
 const CustomSlider = styled(Slider)({
   color: 'black',
   height: 4,
@@ -41,18 +40,29 @@ const CustomSlider = styled(Slider)({
   },
 });
 
-const jobSuggestions = [
-  'Full Stack Developer',
-  'Node Js Developer',
-  'UX/UI Designer',
-];
-
-function JobFilters() {
+function JobFilters({ onFilterChange, jobSuggestions = [] }) {
   const [search, setSearch] = useState('');
+  const [location, setLocation] = useState('');
+  const [jobType, setJobType] = useState('');
+  const [salaryRange, setSalaryRange] = useState([50, 80]);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
 
+  useEffect(() => {
+    const salary = `${salaryRange[0] * 1000}-${salaryRange[1] * 1000}`;
+    onFilterChange({
+      title: search,
+      location,
+      type: jobType,
+      salary,
+    });
+  }, [search, location, jobType, salaryRange]);
+
+  const filteredSuggestions = jobSuggestions.filter((j) =>
+    j.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="flex items-center px-12 h-[70px]  w-full bg-white relative font-sans">
+    <div className="flex items-center px-12 h-[70px] w-full bg-white relative font-sans">
       {/* Search Input */}
       <div className="flex flex-1 flex-col relative">
         <div className="flex items-center">
@@ -69,24 +79,20 @@ function JobFilters() {
             className="w-full text-sm text-gray-700 placeholder-gray-400 focus:outline-none bg-transparent"
           />
         </div>
-        {showJobSuggestions && search && (
-          <ul className="absolute top-full mt-1 bg-white border border-gray-300 rounded shadow w-full z-10 text-sm">
-            {jobSuggestions
-              .filter((j) =>
-                j.toLowerCase().includes(search.toLowerCase())
-              )
-              .map((j) => (
-                <li
-                  key={j}
-                  onClick={() => {
-                    setSearch(j);
-                    setShowJobSuggestions(false);
-                  }}
-                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  {j}
-                </li>
-              ))}
+        {showJobSuggestions && search && filteredSuggestions.length > 0 && (
+          <ul className="absolute top-full mt-1 bg-white border border-gray-300 rounded shadow w-full z-10 text-sm max-h-48 overflow-y-auto">
+            {filteredSuggestions.map((j) => (
+              <li
+                key={j}
+                onClick={() => {
+                  setSearch(j);
+                  setShowJobSuggestions(false);
+                }}
+                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+              >
+                {j}
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -97,15 +103,17 @@ function JobFilters() {
       {/* Location Dropdown */}
       <div className="flex flex-1 items-center">
         <IconMapPin size={18} className="text-gray-500 mr-2" />
-        <select className="w-full text-sm text-gray-600 bg-transparent focus:outline-none">
+        <select
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          className="w-full text-sm text-gray-600 bg-transparent focus:outline-none"
+        >
           <option value="">Preferred Location</option>
-          
           <option value="bangalore">Bangalore</option>
           <option value="hyderabad">Hyderabad</option>
           <option value="remote">Remote</option>
           <option value="delhi">Delhi</option>
           <option value="mumbai">Mumbai</option>
-         
         </select>
       </div>
 
@@ -115,7 +123,11 @@ function JobFilters() {
       {/* Job Type */}
       <div className="flex flex-1 items-center">
         <IconUser size={18} className="text-gray-500 mr-2" />
-        <select className="w-full text-sm text-gray-600 bg-transparent focus:outline-none">
+        <select
+          value={jobType}
+          onChange={(e) => setJobType(e.target.value)}
+          className="w-full text-sm text-gray-600 bg-transparent focus:outline-none"
+        >
           <option value="">Job type</option>
           <option value="fulltime">Full-time</option>
           <option value="parttime">Part-time</option>
@@ -134,13 +146,14 @@ function JobFilters() {
             Salary Per Month
           </span>
           <span className="text-sm text-black font-semibold whitespace-nowrap">
-            ₹50k - ₹80k
+            ₹{salaryRange[0]}k - ₹{salaryRange[1]}k
           </span>
         </div>
         <div className="-mt-1">
           <CustomSlider
             size="small"
-            defaultValue={[50, 80]}
+            value={salaryRange}
+            onChange={(_, newValue) => setSalaryRange(newValue)}
             min={0}
             max={100}
             step={10}

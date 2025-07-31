@@ -1,43 +1,61 @@
 import { IconUserPlus, IconBuilding, IconStack2 } from '@tabler/icons-react';
+import { formatDistanceToNow } from 'date-fns';
 
-function JobPosting({ logo, role, isDraft = false }) {
+function JobPosting({
+  logo,
+  role,
+  location = 'Remote',
+  jobType = 'Full-time',
+  salaryMin = 0,
+  salaryMax = 0,
+   description,
+  isDraft = false,
+  createdAt,
+}) {
+  const DEFAULT_LOGO = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
+  const formattedTime = formatDistanceToNow(new Date(createdAt), { addSuffix: true });
+
   return (
-    <div className="bg-white rounded-xl shadow-md w-[270px] min-h-[235px] relative flex flex-col mb-2 justify-between px-3 pt-4 pb-3 hover:shadow-lg transition font-sans">
+    <div className="bg-white rounded-xl shadow-md w-[270px] min-h-[250px] relative flex flex-col mb-2 justify-between px-3 pt-4 pb-3 hover:shadow-lg transition font-sans">
+      
       {/* Badge */}
       <div
         className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-xs font-semibold 
         ${isDraft ? 'bg-yellow-300 text-black' : 'bg-[#B0D9FF] text-black'}`}
       >
-        {isDraft ? 'Draft' : '24h Ago'}
+        {isDraft ? 'Draft' : formattedTime}
       </div>
 
       {/* Logo + Title */}
       <div className="flex flex-col items-start gap-2 mb-2">
-        <img src={logo} alt="Company Logo" className="w-12 h-12 object-contain rounded-md -ml-1" />
-        <h2 className="text-sm font-semibold text-gray-900 leading-tight">{role}</h2>
+        <img
+          src={logo || DEFAULT_LOGO}
+          alt="Company Logo"
+          className="w-10 h-10 object-contain rounded-md -ml-1"
+        />
+        <h2 className="text-[14px] font-semibold text-gray-900 leading-tight">{role}</h2>
       </div>
 
-      {/* Info Row */}
-      <div className="flex items-center text-xs text-gray-600 gap-4 mb-2">
+      {/* Info Block (vertical stacked) */}
+      <div className="flex flex-col gap-1 text-[12px] text-gray-600 mb-2">
         <div className="flex items-center gap-1">
           <IconUserPlus size={14} />
           <span>1-3 yr Exp</span>
         </div>
         <div className="flex items-center gap-1">
           <IconBuilding size={14} />
-          <span>Onsite</span>
+          <span>{location}</span>
         </div>
         <div className="flex items-center gap-1">
           <IconStack2 size={14} />
-          <span>12LPA</span>
+          <span>₹{salaryMin} - ₹{salaryMax}</span>
         </div>
       </div>
 
-      {/* Description */}
-      <ul className="text-[11.5px] w-full text-gray-500 list-disc pl-4 mb-2 leading-snug">
-        <li>A user-friendly interface lets you browse stunning photos and videos</li>
-        <li>Filter destinations based on interests and travel style, and create personalized</li>
-      </ul>
+      <p className="text-[12px] text-gray-600 leading-snug mb-2">
+  {description}
+</p>
+
 
       {/* Button */}
       <button
