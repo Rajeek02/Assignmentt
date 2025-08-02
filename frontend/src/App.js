@@ -29,64 +29,41 @@ function App() {
     }));
   };
 
-  // Fetch all jobs
-  const fetchJobs = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/jobs');
-      setJobs(response.data);
-    } catch (error) {
-      console.error('❌ Error fetching jobs:', error);
-    }
-  };
-
+  // Fetch jobs from backend whenever filters change
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    const getFilteredJobs = async () => {
+      try {
+        const params = new URLSearchParams();
 
-  // Recalculate filtered jobs on filter or job changes
-  const getFilteredJobs = () => {
-    let result = [...jobs];
-    const { title, location, type, salary } = filters;
+        if (filters.title) params.append('title', filters.title);
+        if (filters.location) params.append('location', filters.location);
+        if (filters.type) params.append('jobType', filters.type);
 
-    if (title) {
-      result = result.filter((job) =>
-        job.title.toLowerCase().includes(title.toLowerCase())
-      );
-    }
+        if (filters.salary) {
+          const [min, max] = filters.salary.split('-').map(Number);
+          if (!isNaN(min)) params.append('salaryFrom', min);
+          if (!isNaN(max)) params.append('salaryTo', max);
+        }
 
-    if (location) {
-      result = result.filter((job) =>
-        job.location.toLowerCase().includes(location.toLowerCase())
-      );
-    }
+        const response = await axios.get(`http://localhost:5000/api/jobs?${params.toString()}`);
+        setJobs(response.data);
+      } catch (error) {
+        console.error('❌ Error fetching filtered jobs:', error);
+      }
+    };
 
-    if (type) {
-      result = result.filter(
-        (job) => job.jobType?.toLowerCase() === type.toLowerCase()
-      );
-    }
+    getFilteredJobs();
+  }, [filters]);
 
-    if (salary) {
-      const [min, max] = salary.split('-').map(Number);
-      result = result.filter((job) => {
-        const rawSalary = job.salaryRange;
-        if (typeof rawSalary !== 'string') return false;
-        const cleaned = rawSalary.replace(/[^\d]/g, '');
-        const salaryNumber = parseInt(cleaned, 10);
-        return salaryNumber >= min && salaryNumber <= max;
-      });
-    }
-
-    return result;
-  };
-
-  const filteredJobs = getFilteredJobs();
+  // Job titles for search suggestions
+  const jobSuggestions = jobs.map((job) => job.title);
 
   // After submitting a job
   const handleJobSubmit = () => {
-    fetchJobs();
-    setShowForm(false);
-  };
+  setFilters({ title: '', location: '', type: '', salary: '' }); // optional: reset filters
+  setShowForm(false); // ✅ Close the modal
+};
+
 
   return (
     <MantineProvider withGlobalStyles withNormalizeCSS>
@@ -94,11 +71,15 @@ function App() {
         <Navbar onCreateClick={handleToggleForm} />
 
         <div className="mt-6">
-          <JobFilters onFilterChange={handleFilterChange} filters={filters} />
+          <JobFilters
+            onFilterChange={handleFilterChange}
+            filters={filters}
+            jobSuggestions={jobSuggestions}
+          />
         </div>
 
         <div className="mt-6">
-          <JobListings localJobs={filteredJobs} /> {/* ✅ Passing dynamic jobs */}
+          <JobListings localJobs={jobs} />
         </div>
 
         {showForm && (

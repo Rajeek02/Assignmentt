@@ -16,10 +16,10 @@ export default function CreateJobForm({ onSubmitSuccess }) {
   const values = watch();
 
   const isValidSalary = () => {
-    const min = parseInt(values.salaryMin);
-    const max = parseInt(values.salaryMax);
-    return !isNaN(min) && !isNaN(max) && min < max;
-  };
+  const min = Number(values.salaryMin);
+  const max = Number(values.salaryMax);
+  return Number.isFinite(min) && Number.isFinite(max) && min < max;
+};
 
   const sendJobData = async (data, status) => {
     if (!isValidSalary()) {

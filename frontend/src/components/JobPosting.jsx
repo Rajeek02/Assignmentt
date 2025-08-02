@@ -1,6 +1,8 @@
 import { IconUserPlus, IconBuilding, IconStack2 } from '@tabler/icons-react';
 import { formatDistanceToNow } from 'date-fns';
 
+
+
 function JobPosting({
   logo,
   role,
@@ -8,10 +10,22 @@ function JobPosting({
   jobType = 'Full-time',
   salaryMin = 0,
   salaryMax = 0,
-   description,
+  description,
   isDraft = false,
   createdAt,
 }) {
+  console.log("JobPosting Props:", {
+    logo,
+    role,
+    location,
+    jobType,
+    salaryMin,
+    salaryMax,
+    description,
+    isDraft,
+    createdAt,
+  });
+
   const DEFAULT_LOGO = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
   const formattedTime = formatDistanceToNow(new Date(createdAt), { addSuffix: true });
 

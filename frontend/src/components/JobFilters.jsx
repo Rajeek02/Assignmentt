@@ -2,6 +2,7 @@ import { IconSearch, IconMapPin, IconUser } from '@tabler/icons-react';
 import Slider from '@mui/material/Slider';
 import { styled } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 
 const CustomSlider = styled(Slider)({
   color: 'black',
@@ -40,26 +41,51 @@ const CustomSlider = styled(Slider)({
   },
 });
 
-function JobFilters({ onFilterChange, jobSuggestions = [] }) {
+function JobFilters({ onFilterChange }) {
   const [search, setSearch] = useState('');
   const [location, setLocation] = useState('');
   const [jobType, setJobType] = useState('');
   const [salaryRange, setSalaryRange] = useState([50, 80]);
   const [showJobSuggestions, setShowJobSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+
+  // 👇 Fetch job title suggestions from API
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!search.trim()) {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        const res = await axios.get(`http://localhost:5000/api/jobs/suggestions?query=${search}`);
+        setSuggestions(res.data); // assume it's array of strings
+      } catch (err) {
+        console.error('Failed to fetch suggestions:', err);
+      }
+    };
+
+    const delayDebounce = setTimeout(fetchSuggestions, 300); // debounce
+
+    return () => clearTimeout(delayDebounce);
+  }, [search]);
 
   useEffect(() => {
-    const salary = `${salaryRange[0] * 1000}-${salaryRange[1] * 1000}`;
-    onFilterChange({
-      title: search,
-      location,
-      type: jobType,
-      salary,
-    });
-  }, [search, location, jobType, salaryRange]);
+  onFilterChange('title', search);
+}, [search]);
 
-  const filteredSuggestions = jobSuggestions.filter((j) =>
-    j.toLowerCase().includes(search.toLowerCase())
-  );
+useEffect(() => {
+  onFilterChange('location', location);
+}, [location]);
+
+useEffect(() => {
+  onFilterChange('type', jobType);
+}, [jobType]);
+
+useEffect(() => {
+  const salary = `${salaryRange[0] * 1000}-${salaryRange[1] * 1000}`;
+  onFilterChange('salary', salary);
+}, [salaryRange]);
 
   return (
     <div className="flex items-center px-12 h-[70px] w-full bg-white relative font-sans">
@@ -79,9 +105,9 @@ function JobFilters({ onFilterChange, jobSuggestions = [] }) {
             className="w-full text-sm text-gray-700 placeholder-gray-400 focus:outline-none bg-transparent"
           />
         </div>
-        {showJobSuggestions && search && filteredSuggestions.length > 0 && (
+        {showJobSuggestions && search && suggestions.length > 0 && (
           <ul className="absolute top-full mt-1 bg-white border border-gray-300 rounded shadow w-full z-10 text-sm max-h-48 overflow-y-auto">
-            {filteredSuggestions.map((j) => (
+            {suggestions.map((j) => (
               <li
                 key={j}
                 onClick={() => {
@@ -108,12 +134,12 @@ function JobFilters({ onFilterChange, jobSuggestions = [] }) {
           onChange={(e) => setLocation(e.target.value)}
           className="w-full text-sm text-gray-600 bg-transparent focus:outline-none"
         >
-          <option value="">Preferred Location</option>
-          <option value="bangalore">Bangalore</option>
-          <option value="hyderabad">Hyderabad</option>
-          <option value="remote">Remote</option>
-          <option value="delhi">Delhi</option>
-          <option value="mumbai">Mumbai</option>
+          
+          <option value="Bangalore">Bangalore</option>
+          <option value="Hyderabad">Hyderabad</option>
+          <option value="Remote">Remote</option>
+          <option value="Chennai">Chennai</option>
+        
         </select>
       </div>
 

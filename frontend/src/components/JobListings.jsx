@@ -6,25 +6,25 @@ function JobListings({ localJobs, filters }) {
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
 
-  // ✅ Fetch jobs with current filters
-  const fetchJobs = async () => {
-    try {
-      const query = new URLSearchParams();
+ const fetchJobs = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/jobs'); // 🔥 Use full URL
+    const formatted = response.data.map((job) => ({
+      title: job.title || '',
+      location: job.location || '',
+      jobType: job.jobType || '',
+      salaryFrom: job.salaryFrom || 0,
+      salaryTo: job.salaryTo || 0,
+      description: job.description || '',
+      createdAt: new Date(job.createdAt).toISOString(),
+    }));
+    setJobs(formatted);
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+  }
+};
 
-      if (filters.title) query.append('title', filters.title);
-      if (filters.location) query.append('location', filters.location);
-      if (filters.jobType) query.append('jobType', filters.jobType);
-      if (filters.salaryFrom) query.append('salaryFrom', filters.salaryFrom);
-      if (filters.salaryTo) query.append('salaryTo', filters.salaryTo);
 
-      const res = await axios.get(`http://localhost:5000/api/jobs?${query.toString()}`);
-      setJobs(res.data);
-    } catch (err) {
-      console.error('❌ Fetch error:', err);
-    }
-  };
-
-  // ✅ Load jobs from props or fetch if not available
   useEffect(() => {
     if (localJobs && localJobs.length > 0) {
       setJobs(localJobs);
@@ -33,48 +33,57 @@ function JobListings({ localJobs, filters }) {
     }
   }, [localJobs]);
 
-  // ✅ Fetch again when filters change
   useEffect(() => {
-    console.log('📦 Current Filters:', filters);
-    fetchJobs();
-  }, [filters]);
-
-  // ✅ Filter jobs locally
-  useEffect(() => {
-    if (!filters) {
-      setFilteredJobs(jobs);
-      return;
-    }
-
-    const {
-      title = '',
-      location = '',
-      jobType = '',
-      salaryFrom = 0,
-      salaryTo = Infinity,
-    } = filters;
-
-    const minSalary = parseInt(salaryFrom) || 0;
-    const maxSalary = parseInt(salaryTo) || Infinity;
-
-    const filtered = jobs.filter((job) => {
-      const jobTitle = job.title?.toLowerCase() || '';
-      const jobLocation = job.location?.toLowerCase() || '';
-      const jobTypeValue = job.jobType?.toLowerCase() || '';
-      const jobSalaryMin = parseInt(job.salaryFrom) || 0;
-      const jobSalaryMax = parseInt(job.salaryTo) || 0;
-
-      const matchesTitle = !title || jobTitle.includes(title.toLowerCase());
-      const matchesLocation = !location || jobLocation === location.toLowerCase();
-      const matchesType = !jobType || jobTypeValue === jobType.toLowerCase();
-      const matchesSalary =
-        jobSalaryMin >= minSalary && jobSalaryMax <= maxSalary;
-
-      return matchesTitle && matchesLocation && matchesType && matchesSalary;
-    });
-
-    setFilteredJobs(filtered);
+    applyFilters();
   }, [jobs, filters]);
+
+  const applyFilters = () => {
+  if (!filters) {
+    setFilteredJobs(jobs);
+    return;
+  }
+
+  const {
+    title = '',
+    location = '',
+    jobType = '',
+    salary = '0-Infinity',
+  } = filters;
+
+  const [salaryMin, salaryMax] = salary
+    .split('-')
+    .map((s, i) => (i === 1 && s === 'Infinity' ? Infinity : parseInt(s.trim()) || 0));
+
+  const filtered = jobs.filter((job) => {
+    if (!job || typeof job !== 'object') return false;
+
+    const jobTitle = job.title?.toLowerCase() || '';
+    const jobLocation = job.location?.toLowerCase() || '';
+    const jobTypeFromJob = job.jobType?.toLowerCase() || '';
+    const jobSalaryMin = parseInt(job.salaryFrom) || 0;
+    const jobSalaryMax = parseInt(job.salaryTo) || 0;
+
+    const matchesTitle = title === '' || jobTitle.includes(title.toLowerCase());
+    const matchesLocation = location === '' || jobLocation.includes(location.toLowerCase());
+    const matchesType = jobType === '' || jobTypeFromJob === jobType.toLowerCase();
+    const matchesSalary = jobSalaryMin >= salaryMin && jobSalaryMax <= salaryMax;
+
+    return matchesTitle && matchesLocation && matchesType && matchesSalary;
+  });
+
+  // 🔥 Sort: bring matching-location jobs to top
+  if (location) {
+    const locLower = location.toLowerCase();
+    filtered.sort((a, b) => {
+      const aMatch = a.location?.toLowerCase().includes(locLower);
+      const bMatch = b.location?.toLowerCase().includes(locLower);
+      return bMatch - aMatch; // true=1, false=0; so matching jobs come first
+    });
+  }
+
+  setFilteredJobs(filtered);
+};
+
 
   return (
     <div
