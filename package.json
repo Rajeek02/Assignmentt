@@ -4,9 +4,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node src/index.js",
-    "postinstall": "prisma generate --schema=./prisma/schema.prisma"
-  },
+  "start": "node src/index.js",
+  "dev": "node src/index.js",
+  "postinstall": "prisma generate --schema=./prisma/schema.prisma"
+}
+,
   "keywords": [],
   "author": "",
   "license": "ISC",
